@@ -56,6 +56,8 @@
         // const inGrid = i !== '0' || i !== '9' || j !== '0' || j !== '9'
         var gridSize = 10;
         var grid = [];
+        var startingPoint = [];
+        var endPoint = [];
 
         buildGrid(gridSize)
 
@@ -63,10 +65,10 @@
             for (i = 0; i < size; i++) {
                 var rowId = `row-${i}`
                 $('#grid').append('<div class="row justify-content-md-center" id="' + rowId + '" />');
-                grid[ i ] = [];
+                grid[i] = [];
                 for (j = 0; j < size; j++) {
                     var curVertex = `${i}-${j}`;
-                   
+
                     // Place Buttons in Grid
                     $(`#${rowId}`).append(`
                     <div class="${colClass}" id="${curVertex}" >
@@ -77,38 +79,162 @@
                     `)
 
                     // Place Empty Values in each grid cell
-                    grid[ i ][ j ] = 'Empty'
+                    grid[i][j] = 'Empty'
 
                     // Add Click handler to buttons
                     $(`.${i}-${j}`).click(function (e) {
                         e.preventDefault();
                         var targArray = e.target.value.split('-')
-                        var [ targRow, targCol ] = [ targArray[ 0 ], targArray[ 1 ] ];
+                        var [targRow, targCol] = [targArray[0], targArray[1]];
                         var curClass = $(this).attr("class");
                         if (toggleValue === '1') {
                             $(this).removeClass(`${curClass}`)
                             $(this).addClass('btn btn-dark h-100 w-100 d-block');
-                            grid[ targRow ][ targCol ] = 'Obstacle'
+                            grid[targRow][targCol] = 'Obstacle'
                         }
                         if (toggleValue === '2' && startClick !== 1) {
                             startClick++;
                             $(this).removeClass(`${curClass}`)
                             $(this).addClass('btn btn-success h-100 w-100 d-block');
-                            grid[ targRow ][ targCol ] = 'Start'
+                            grid[targRow][targCol] = 'Start'
+                            startingPoint = [Number(targRow), Number(targCol)]
                         }
                         if (toggleValue === '3' && endClick !== 1) {
                             endClick++;
                             $(this).removeClass(`${curClass}`)
                             $(this).addClass('btn btn-danger h-100 w-100 d-block');
-                            grid[ targRow ][ targCol ] = 'End'
+                            grid[targRow][targCol] = 'End'
+                            endPoint = [Number(targRow), Number(targCol)]
                         }
 
                     })
                 }
             }
         }
+
+        function locationStatus(location, gridElement) {
+            var gSize = gridElement.length;
+            const {distanceFromTop, distanceFromLeft} = location;
+            var dft = distanceFromTop
+                , dfl = distanceFromLeft
+                ;
+
+            if (distanceFromLeft < 0 ||
+                distanceFromLeft >= gSize ||
+                distanceFromTop < 0 ||
+                distanceFromTop >= gSize) {
+                return 'Invalid'
+            }
+            if (gridElement[dft][dfl] === 'End') {
+                return 'Goal'
+            }
+            if (gridElement[dft][dfl] !== 'Empty') {
+                return 'Blocked'
+            }
+            return 'Valid'
+        }
+
+        function exploreInDirection(currentLocation, direction, gridElement) {
+            var newPath = currentLocation.path.slice()
+                , dft = currentLocation.distanceFromTop
+                , dfl = currentLocation.distanceFromLeft
+                ;
+            const {distanceFromTop, distanceFromLeft} = currentLocation;
+            newPath.push(direction);
+
+
+            if (direction === 'North') {
+                dft -= 1;
+
+            }
+            if (direction === 'East') {
+                dfl += 1;
+
+            }
+            if (direction === 'South') {
+                dft += 1;
+
+            }
+            if (direction === 'West') {
+                dfl -= 1;
+
+            }
+
+
+            var newLocation = {
+                distanceFromTop: dft,
+                distanceFromLeft: dfl,
+                path: newPath,
+                status: 'Unknown'
+            }
+
+            newLocation.status = locationStatus(newLocation, gridElement);
+
+            if (newLocation.status === 'Valid') {
+                gridElement[newLocation.distanceFromTop][newLocation.distanceFromLeft] = 'Visited'
+            }
+
+            return newLocation
+        }
+
+        function findShortestPath(startCoords, gridElement) {
+            var distanceFromTop = startCoords[0]
+                , distanceFromLeft = startCoords[1]
+                ;
+
+            var location = {
+                distanceFromTop,
+                distanceFromLeft,
+                path: [],
+                status: 'Start'
+            }
+
+            var queue = [location];
+
+
+            while (queue.length > 0) {
+                var currentLocation = queue.shift();
+                console.log(queue)
+                //Explore North
+                var newLocation = exploreInDirection(currentLocation, 'North', gridElement);
+
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                    console.log(queue)
+                }
+                //Explore South
+                var newLocation = exploreInDirection(currentLocation, 'South', gridElement);
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                    console.log(queue)
+                }
+                //Explore East
+                var newLocation = exploreInDirection(currentLocation, 'East', gridElement);
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                    console.log(queue)
+                }
+                //Explore West
+                var newLocation = exploreInDirection(currentLocation, 'West', gridElement);
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                    console.log(queue)
+                }
+            }
+
+            return false;
+        }
+
         $('.btn-check').click(function (e) {
-            e.preventDefault();
+            // e.preventDefault();
             toggleValue = e.target.value
             console.log(toggleValue)
         })
@@ -121,6 +247,11 @@
             startClick = 0;
             endClick = 0;
             buildGrid(gridSize);
+        })
+
+        $('#path').click(function (e) {
+            console.log(e.target.value);
+            console.log(findShortestPath(startingPoint, grid))
         })
     });
 </script>
