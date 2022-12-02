@@ -49,17 +49,17 @@
         var toggleValue = null
         var startClick = 0;
         var endClick = 0;
-        // const topLeft = i === '0' && j === '0'
-        // const topRight = i === '0' && j === '9'
-        // const bottomLeft = i === '9' && j === '0'
-        // const bottomRight = i === '9' && j === '9'
-        // const inGrid = i !== '0' || i !== '9' || j !== '0' || j !== '9'
-        var gridSize = 10;
+        var initGrid = 10;
+        var newGrid = 10;
         var grid = [];
         var startingPoint = [];
         var endPoint = [];
 
-        buildGrid(gridSize)
+        // Enable tooltips
+        const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
+        const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
+
+        buildGrid(initGrid)
 
         function buildGrid(size) {
             for (i = 0; i < size; i++) {
@@ -140,26 +140,21 @@
                 , dfl = currentLocation.distanceFromLeft
                 ;
             const {distanceFromTop, distanceFromLeft} = currentLocation;
-            newPath.push(direction);
 
+            newPath.push({direction, coord: [dft, dfl]});
 
             if (direction === 'North') {
                 dft -= 1;
-
             }
             if (direction === 'East') {
                 dfl += 1;
-
             }
             if (direction === 'South') {
                 dft += 1;
-
             }
             if (direction === 'West') {
                 dfl -= 1;
-
             }
-
 
             var newLocation = {
                 distanceFromTop: dft,
@@ -191,10 +186,9 @@
 
             var queue = [location];
 
-
             while (queue.length > 0) {
                 var currentLocation = queue.shift();
-                console.log(queue)
+
                 //Explore North
                 var newLocation = exploreInDirection(currentLocation, 'North', gridElement);
 
@@ -202,75 +196,134 @@
                     return newLocation.path;
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
-                    console.log(queue)
                 }
                 //Explore South
                 var newLocation = exploreInDirection(currentLocation, 'South', gridElement);
+
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
-                    console.log(queue)
                 }
+
                 //Explore East
                 var newLocation = exploreInDirection(currentLocation, 'East', gridElement);
+
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
-                    console.log(queue)
                 }
+
                 //Explore West
                 var newLocation = exploreInDirection(currentLocation, 'West', gridElement);
+
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
-                    console.log(queue)
                 }
             }
 
-            return false;
+            return -1;
         }
 
-        $('.btn-check').click(function (e) {
-            // e.preventDefault();
-            toggleValue = e.target.value
-            console.log(toggleValue)
-        })
-
-        $('#reset').click(function (e) {
+        function resetGrid() {
             $('#grid').empty();
             var curChecked = $('input:checked').attr('id');
             $(`#${curChecked}`).prop('checked', false)
             toggleValue = null;
             startClick = 0;
             endClick = 0;
-            buildGrid(gridSize);
+        }
+
+        $('.btn-check').click(function (e) {
+            // e.preventDefault();
+            toggleValue = e.target.value
+        })
+
+        $('#reset').click(function () {
+            resetGrid();
+            buildGrid(newGrid);
         })
 
         $('#path').click(function (e) {
-            console.log(e.target.value);
-            console.log(findShortestPath(startingPoint, grid))
+            var shortestPath = findShortestPath(startingPoint, grid);
+            if (shortestPath?.length || shortestPath !== -1) {
+                shortestPath = shortestPath.map(path => path.coord);
+
+                for (let k = 0; k < shortestPath.length; k++) {
+                    var [coordX, coordY] = shortestPath[k];
+                    $(`.${coordX}-${coordY}`).addClass('btn btn-warning h-100 w-100 d-block');
+                }
+            } else {
+                alert("No viable path found")
+            }
         })
-    });
+
+        $("#subm").click(function (e) {
+            e.preventDefault()
+            // get all the inputs into an array.
+            var $inputs = $('#gridSize:input');
+
+            // not sure if you wanted this, but I thought I'd add it.
+            // get an associative array of just the values.
+            var values = {};
+            $inputs.each(function () {
+                values[this.name] = $(this).val();
+            });
+
+            var {gridSize} = values;
+
+            newGrid = Number(gridSize);
+            resetGrid();
+            buildGrid(newGrid);
+
+
+
+        });
+    })
 </script>
 
 <body>
     <div class="container text-center bg-light p-4" id="main">
-        <div class="container text-center bg-light" id="buttons">
-            <div class="btn-group mb-5" role="group" aria-label="Grid selection">
-                <input type="radio" class="btn-check value-btn" name="grid-sel" id="obstacles" value="1"
-                    autocomplete="off">
-                <label class="btn btn-outline-dark mx-1" for="obstacles">Select Obstacles</label>
-                <input type="radio" class="btn-check" name="grid-sel" id="start" value="2" autocomplete="off">
-                <label class="btn btn-outline-success mx-1" for="start">Select Start</label>
-                <input type="radio" class="btn-check" name="grid-sel" id="end" value="3" autocomplete="off">
-                <label class="btn btn-outline-danger mx-1" for="end">Select End</label>
-                <input type="radio" class="btn-check" name="grid-sel" id="reset" value="4" autocomplete="off">
-                <label class="btn btn-outline-warning mx-1" for="reset">Reset</label>
-                <input type="radio" class="btn-check" name="grid-sel" id="path" value="5" autocomplete="off">
-                <label class="btn btn-outline-secondary mx-1" for="path">Find Path</label>
+        <div class="container  my-2">
+            <form id="grid-form">
+                <div class="d-flex flex-row align-items-center justify-content-evenly">
+                    <div class="col-4 form-floating mb-3">
+                        <input type="text" class="form-control" id="gridSize" name="gridSize" placeholder="10">
+                        <label for="gridSize">Select Grid Size</label>
+                    </div>
+                    <div class="col-4">
+                        <button class="btn btn-primary mb-auto" type="button" id="subm">Draw Grid</button>
+                    </div>
+                </div>
+            </form>
+
+
+        </div>
+        <div class="container my-2 text-center bg-light" id="buttons">
+
+
+            <div class="row">
+                <div class="btn-group mb-5" role="group" aria-label="Grid selection">
+                    <input type="radio" class="btn-check value-btn" name="grid-sel" id="obstacles" value="1"
+                        autocomplete="off">
+                    <label class="btn btn-outline-dark mx-1" for="obstacles" data-bs-toggle="tooltip"
+                        data-bs-placement="top" data-bs-title="Select obstacles">Select Obstacles</label>
+                    <input type="radio" class="btn-check" name="grid-sel" id="start" value="2" autocomplete="off">
+                    <label class="btn btn-outline-success mx-1" for="start" data-bs-toggle="tooltip"
+                        data-bs-placement="top" data-bs-title="Select Starting Point">Select Start</label>
+                    <input type="radio" class="btn-check" name="grid-sel" id="end" value="3" autocomplete="off">
+                    <label class="btn btn-outline-danger mx-1" for="end" data-bs-toggle="tooltip"
+                        data-bs-placement="top" data-bs-title="Select Ending Point">Select End</label>
+                    <input type="radio" class="btn-check" name="grid-sel" id="reset" value="4" autocomplete="off">
+                    <label class="btn btn-outline-warning mx-1" for="reset" data-bs-toggle="tooltip"
+                        data-bs-placement="top" data-bs-title="Clear the Grid">Reset</label>
+                    <input type="radio" class="btn-check" name="grid-sel" id="path" value="5" autocomplete="off">
+                    <label class="btn btn-outline-secondary mx-1" for="path" data-bs-toggle="tooltip"
+                        data-bs-placement="top" data-bs-title="Find the Shortest Path">Find Path</label>
+                </div>
             </div>
         </div>
         <div class="container text-center bg-light" id="grid"></div>
