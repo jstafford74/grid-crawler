@@ -41,53 +41,148 @@
 <script>
     $(document).ready(function () {
         var colClass = "col col-md border border-dark"
+        var BUTTON_INFO = 'btn-info'
+        var BUTTON_SUCCESS = 'btn-success'
+        var BUTTON_DANGER = 'btn-danger'
+        var BUTTON_DARK = 'btn-dark'
+        var baseButtonClass = `btn ${BUTTON_INFO} h-100 w-100 d-block`
         var toggleValue = null
         var startClick = 0;
         var endClick = 0;
+        // const topLeft = i === '0' && j === '0'
+        // const topRight = i === '0' && j === '9'
+        // const bottomLeft = i === '9' && j === '0'
+        // const bottomRight = i === '9' && j === '9'
+        // const inGrid = i !== '0' || i !== '9' || j !== '0' || j !== '9'
+        var gridSize = 10;
+        var grid = [];
 
-        for (i = 0; i < 10; i++) {
-            var rowId = `row-${i}`
-            $('#main').append('<div class="row justify-content-md-center" id="' + rowId + '" />');
+        buildGrid(gridSize)
 
-            for (j = 0; j < 10; j++) {
-                $(`#${rowId}`).append(`
+        function buildGrid(size) {
+            for (i = 0; i < size; i++) {
+                var rowId = `row-${i}`
+                $('#grid').append('<div class="row justify-content-md-center" id="' + rowId + '" />');
+                grid[ i ] = [];
+                for (j = 0; j < size; j++) {
+                    grid[ i ][ j ] = 'Empty'
+                    var curVertex = `${i}-${j}`;
+                    // FIND EDGES ON THE CORNERS
+                    // if (topLeft) {
+                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
+                    // }
+                    // if (topRight) {
+                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
+                    // }
+                    // if (bottomLeft) {
+                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
+                    // }
+                    // if (bottomRight) {
+                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
+                    // }
+                    // FIND EDGES ON THE TOP
+                    // if (i === '0' && !(topLeft || topRight)) {
+                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
+                    // }
+                    // FIND EDGES ON THE LEFT
+                    // if (j === '0' && !bottomLeft) {
+                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
+                    // }
+                    // FIND EDGES ON THE RIGHT
+                    // if (j === '9' && !bottomRight) {
+                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
+                    // }
+                    // FIND EDGES AT THE BOTTOM
+                    // if (i === '9' && !(bottomLeft || bottomRight)) {
+                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
+                    // }
+                    //FIND ALL OTHER EDGES
+                    // if (inGrid) {
+                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
+                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
+                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
+                    // }
+
+                    // Place Buttons in Grid
+                    $(`#${rowId}`).append(`
                     <div class="${colClass}" id="${i}-${j}" >
-                        <button class="${i}-${j} btn btn-info h-100 w-100 d-block" value="${i}-${j}">
+                        <button class="${i}-${j} ${baseButtonClass}" value="${i}-${j}">
                         [${i},${j}]
                         </button>
                     </div>
                   `)
-                $(`.${i}-${j}`).click(function (e) {
-                    e.preventDefault();
-                    var curClass = $(this).attr("class")
-                   
+                    // Add Click handler to buttons
+                    $(`.${i}-${j}`).click(function (e) {
+                        e.preventDefault();
+                        var targArray = e.target.value.split('-')
+                        var [ targRow, targCol ] = [ targArray[ 0 ], targArray[ 1 ] ];
+                        var curClass = $(this).attr("class");
 
-                    if (toggleValue === '1') {
-                        $(this).removeClass(`${curClass}`)
-                        $(this).addClass('btn btn-dark h-100 w-100 d-block');
-                    }
-                    if(toggleValue === '2' && startClick !== 1){
-                        startClick++;
-                        $(this).removeClass(`${curClass}`)
-                        $(this).addClass('btn btn-success h-100 w-100 d-block');  
-                    }
-                    if(toggleValue === '3' && endClick !== 1){
-                        endClick++;
-                        $(this).removeClass(`${curClass}`)
-                        $(this).addClass('btn btn-danger h-100 w-100 d-block');
-                    }
-                    
-                })
+                        if (toggleValue === '1') {
+                            $(this).removeClass(`${curClass}`)
+                            $(this).addClass('btn btn-dark h-100 w-100 d-block');
+                            grid[ targRow ][ targCol ] = 'Obstacle'
+                        }
+                        if (toggleValue === '2' && startClick !== 1) {
+                            startClick++;
+                            $(this).removeClass(`${curClass}`)
+                            $(this).addClass('btn btn-success h-100 w-100 d-block');
+                            grid[ targRow ][ targCol ] = 'Start'
+                        }
+                        if (toggleValue === '3' && endClick !== 1) {
+                            endClick++;
+                            $(this).removeClass(`${curClass}`)
+                            $(this).addClass('btn btn-danger h-100 w-100 d-block');
+                            grid[ targRow ][ targCol ] = 'End'
+                        }
+
+                    })
+                }
             }
         }
-
         $('.btn-check').click(function (e) {
+            // e.preventDefault();
             toggleValue = e.target.value
-           
+
         })
 
+        $('#reset').click(function (e) {
 
-    
+            $('#grid').empty();
+            var curChecked = $('input:checked').attr('id');
+            $(`#${curChecked}`).prop('checked', false)
+            toggleValue = null;
+            buildGrid(gridSize);
+        })
     });
 </script>
 
@@ -95,18 +190,24 @@
 
 
     <div class="container text-center bg-light p-4" id="main">
-        <div class="btn-group mb-5" role="group" aria-label="Grid selection">
-            <input type="radio" class="btn-check" name="grid-sel" id="obstacles" value="1" autocomplete="off">
-            <label class="btn btn-outline-dark" for="obstacles">Select Obstacles</label>
-            <input type="radio" class="btn-check" name="grid-sel" id="start" value="2" autocomplete="off">
-            <label class="btn btn-outline-success" for="start">Select Start</label>
-            <input type="radio" class="btn-check" name="grid-sel" id="end" value="3" autocomplete="off">
-            <label class="btn btn-outline-danger" for="end">Select End</label>
+        <div class="container text-center bg-light" id="buttons">
+            <div class="btn-group mb-5" role="group" aria-label="Grid selection">
+                <input type="radio" class="btn-check value-btn" name="grid-sel" id="obstacles" value="1"
+                    autocomplete="off">
+                <label class="btn btn-outline-dark mx-1" for="obstacles">Select Obstacles</label>
+                <input type="radio" class="btn-check" name="grid-sel" id="start" value="2" autocomplete="off">
+                <label class="btn btn-outline-success mx-1" for="start">Select Start</label>
+                <input type="radio" class="btn-check" name="grid-sel" id="end" value="3" autocomplete="off">
+                <label class="btn btn-outline-danger mx-1" for="end">Select End</label>
+                <input type="radio" class="btn-check" name="grid-sel" id="reset" value="4" autocomplete="off">
+                <label class="btn btn-outline-warning mx-1" for="reset">Reset</label>
+                <input type="radio" class="btn-check" name="grid-sel" id="path" value="5" autocomplete="off">
+                <label class="btn btn-outline-secondary mx-1" for="path">Find Path</label>
+            </div>
         </div>
+        <div class="container text-center bg-light" id="grid"></div>
     </div>
 </body>
-<script>
 
-</script>
 
 </html>
