@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Simple table</title>
+    <title>Grid Crawler</title>
 </head>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet"
     integrity="sha384-rbsA2VBKQhggwzxH7pPCaAqO46MgnOM80zW1RWuH61DGLwZJEdK2Kadq2F9CUG65" crossorigin="anonymous">
@@ -11,10 +11,20 @@
     integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4"
     crossorigin="anonymous"></script>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://kit.fontawesome.com/2f6dd687b6.js" crossorigin="anonymous"></script>
 <style>
-    #main {
+    main {
         margin-top: 150px;
+    }
+
+    #main {
         max-width: 700px;
+        border-radius: 5%;
+    }
+
+    #side-left {
+        width: 400px;
+        height: 100vh;
     }
 
     .row {
@@ -27,34 +37,41 @@
     }
 
     .btn {
-
         border-radius: 0;
-    }
-
-    .grid-container>div {
-        background-color: rgba(255, 255, 255, 0.8);
-        text-align: center;
-        padding: 20px 0;
     }
 </style>
 
 <script>
     $(document).ready(function () {
-        var colClass = "col col-md border border-dark"
-        var BUTTON_INFO = 'btn-info'
-        var BUTTON_SUCCESS = 'btn-success'
-        var BUTTON_DANGER = 'btn-danger'
-        var BUTTON_DARK = 'btn-dark'
-        var baseButtonClass = `btn ${BUTTON_INFO} h-100 w-100 d-block`
-        var toggleValue = null
-        var startClick = 0;
-        var endClick = 0;
-        var initGrid = 10;
-        var newGrid = 10;
-        var grid = [];
-        var startingPoint = [];
-        var endPoint = [];
+        const COL_CLASS = "col col-md border border-dark",
+            OBSTACLE_BUTTON_CLASS = 'btn btn-dark h-100 w-100 d-block',
+            START_BUTTON_CLASS = 'btn btn-success h-100 w-100 d-block',
+            END_BUTTON_CLASS = 'btn btn-danger h-100 w-100 d-block',
+            PATH_BUTTON_CLASS = 'btn btn-warning h-100 w-100 d-block',
+            BASE_BUTTON_CLASS = `btn btn-info h-100 w-100 d-block`,
+            EMPTY = 'Empty',
+            OBSTACLE = 'Obstacle',
+            START = 'Start',
+            END = 'End'
+            ;
 
+        const BUTTON_CLASSES = {
+            [OBSTACLE]: OBSTACLE_BUTTON_CLASS,
+            [START]: START_BUTTON_CLASS,
+            [END]: END_BUTTON_CLASS,
+            [EMPTY]: BASE_BUTTON_CLASS
+        };
+
+        var toggleValue = false,
+            startClick = 0,
+            endClick = 0,
+            initGrid = 10,
+            newGrid = 10,
+            grid = [],
+            startingPoint = [],
+            endPoint = [],
+            cellValue = 'Empty'
+            ;
         // Enable tooltips
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
@@ -62,49 +79,83 @@
         buildGrid(initGrid)
 
         function buildGrid(size) {
+            // Loop through 2-dimensional array, based on grid size, in order to 
+            // build divs, buttons and assign values to each DOM element that match 
+            // the location/values in the grid I use to find the shortest path.
+
+            // Start with rows
             for (i = 0; i < size; i++) {
                 var rowId = `row-${i}`
                 $('#grid').append('<div class="row justify-content-md-center" id="' + rowId + '" />');
+                // Set each row in the calculation grid to an empty array
                 grid[i] = [];
+                // Loop through the "cells" in each [row,col] pair
                 for (j = 0; j < size; j++) {
+                    // Define current pair        
                     var curVertex = `${i}-${j}`;
-
                     // Place Buttons in Grid
                     $(`#${rowId}`).append(`
-                    <div class="${colClass}" id="${curVertex}" >
-                        <button class="${i}-${j} ${baseButtonClass}" value="${curVertex}">
-                        [${i},${j}]
-                        </button>
+                    <div class="${COL_CLASS}" id="${curVertex}" >
+                        <button class="${i}-${j} ${BASE_BUTTON_CLASS}" value="${curVertex}" data-cell-value="${EMPTY}" />
                     </div>
                     `)
 
                     // Place Empty Values in each grid cell
-                    grid[i][j] = 'Empty'
+                    grid[i][j] = EMPTY
 
-                    // Add Click handler to buttons
+                    // Add Click handler to buttons just placed in the DOM grid
                     $(`.${i}-${j}`).click(function (e) {
                         e.preventDefault();
+                        var cellVal = $(this).data("cell-value")
+                            , shouldToggle = cellVal === cellValue;
+
+                        // Pull value from element
                         var targArray = e.target.value.split('-')
+                        // Convert value to array of numbers
                         var [targRow, targCol] = [targArray[0], targArray[1]];
+                        // Define the current class in order to properly replace it based
+                        // on the toggle selection, i.e. start, end or obstacle without residuals
                         var curClass = $(this).attr("class");
-                        if (toggleValue === '1') {
+
+                        if (shouldToggle && cellVal !== EMPTY) {
+                            $(this).data("cell-value", EMPTY);
                             $(this).removeClass(`${curClass}`)
-                            $(this).addClass('btn btn-dark h-100 w-100 d-block');
-                            grid[targRow][targCol] = 'Obstacle'
+                            $(this).addClass(`${BUTTON_CLASSES[EMPTY]}`);
+                            grid[targRow][targCol] = EMPTY
+                            if (cellValue === START && startClick !== 0) {
+                                startClick = 0;
+                                startingPoint = []
+                            }
+                            if (cellValue === END && endClick !== 0) {
+                                endClick = 0;
+                                endPoint = []
+                            }
                         }
-                        if (toggleValue === '2' && startClick !== 1) {
-                            startClick++;
+                        if (!shouldToggle && cellVal === EMPTY) {
+                            $(this).data("cell-value", cellValue);
                             $(this).removeClass(`${curClass}`)
-                            $(this).addClass('btn btn-success h-100 w-100 d-block');
-                            grid[targRow][targCol] = 'Start'
-                            startingPoint = [Number(targRow), Number(targCol)]
-                        }
-                        if (toggleValue === '3' && endClick !== 1) {
-                            endClick++;
-                            $(this).removeClass(`${curClass}`)
-                            $(this).addClass('btn btn-danger h-100 w-100 d-block');
-                            grid[targRow][targCol] = 'End'
-                            endPoint = [Number(targRow), Number(targCol)]
+                            $(this).addClass(`${BUTTON_CLASSES[cellValue]}`);
+                            grid[targRow][targCol] = cellValue;
+                            if (cellValue === START) {
+                                if (startClick !== 0) {
+                                    alert("Can only have One Starting Point")
+                                    return;
+                                }
+                                if (startClick === 0) {
+                                    startClick++;
+                                    startingPoint = [Number(targRow), Number(targCol)]
+                                }
+                            }
+                            if (cellValue === END) {
+                                if (endClick !== 0) {
+                                    alert("Can only have One Ending Point")
+                                    return;
+                                }
+                                if (endClick === 0) {
+                                    endClick++;
+                                    endPoint = [Number(targRow), Number(targCol)]
+                                }
+                            }
                         }
 
                     })
@@ -112,11 +163,13 @@
             }
         }
 
+        // Helper function that determines if the cell to be explored
+        // is a valid cell, i.e. on-grid, not visited or free from obstacles.
         function locationStatus(location, gridElement) {
-            var gSize = gridElement.length;
-            const {distanceFromTop, distanceFromLeft} = location;
-            var dft = distanceFromTop
-                , dfl = distanceFromLeft
+            var gSize = gridElement.length,
+                {distanceFromTop, distanceFromLeft} = location,
+                dft = distanceFromTop,
+                dfl = distanceFromLeft
                 ;
 
             if (distanceFromLeft < 0 ||
@@ -125,34 +178,52 @@
                 distanceFromTop >= gSize) {
                 return 'Invalid'
             }
-            if (gridElement[dft][dfl] === 'End') {
+            if (gridElement[dft][dfl] === END) {
                 return 'Goal'
             }
-            if (gridElement[dft][dfl] !== 'Empty') {
+            if (gridElement[dft][dfl] !== EMPTY) {
                 return 'Blocked'
             }
             return 'Valid'
         }
 
+        // Helper function that grabs data from the adjacent cells and then 
+        // updates the location in the queue
         function exploreInDirection(currentLocation, direction, gridElement) {
             var newPath = currentLocation.path.slice()
                 , dft = currentLocation.distanceFromTop
                 , dfl = currentLocation.distanceFromLeft
+                , {distanceFromTop, distanceFromLeft} = currentLocation
                 ;
-            const {distanceFromTop, distanceFromLeft} = currentLocation;
 
             newPath.push({direction, coord: [dft, dfl]});
 
-            if (direction === 'North') {
+            if (direction === 'Up') {
                 dft -= 1;
             }
-            if (direction === 'East') {
+            if (direction === 'UpLeft') {
+                dft -= 1;
                 dfl += 1;
             }
-            if (direction === 'South') {
+            if (direction === 'UpRight') {
+                dft -= 1;
+                dfl -= 1;
+            }
+            if (direction === 'Down') {
                 dft += 1;
             }
-            if (direction === 'West') {
+            if (direction === 'DownLeft') {
+                dft += 1;
+                dfl += 1;
+            }
+            if (direction === 'DownRight') {
+                dft += 1;
+                dfl -= 1;
+            }
+            if (direction === 'Left') {
+                dfl += 1;
+            }
+            if (direction === 'Right') {
                 dfl -= 1;
             }
 
@@ -172,42 +243,65 @@
             return newLocation
         }
 
+        // This function executes the BFS algorithm and returns 
+        // the queue that contains the shortest path
         function findShortestPath(startCoords, gridElement) {
-            var distanceFromTop = startCoords[0]
-                , distanceFromLeft = startCoords[1]
+            var distanceFromTop = startCoords[0],
+                distanceFromLeft = startCoords[1],
+                location = {
+                    distanceFromTop,
+                    distanceFromLeft,
+                    path: [],
+                    status: 'Start'
+                },
+                queue = [location] // This is the data structure
                 ;
 
-            var location = {
-                distanceFromTop,
-                distanceFromLeft,
-                path: [],
-                status: 'Start'
-            }
-
-            var queue = [location];
-
             while (queue.length > 0) {
-                var currentLocation = queue.shift();
+                var currentLocation = queue.shift(); // FIFO location
 
-                //Explore North
-                var newLocation = exploreInDirection(currentLocation, 'North', gridElement);
-
-                if (newLocation.status === 'Goal') {
-                    return newLocation.path;
-                } else if (newLocation.status === 'Valid') {
-                    queue.push(newLocation)
-                }
-                //Explore South
-                var newLocation = exploreInDirection(currentLocation, 'South', gridElement);
+                //Go Up
+                var newLocation = exploreInDirection(currentLocation, 'Up', gridElement);
 
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
                 }
+                //Go Up-Left
+                var newLocation = exploreInDirection(currentLocation, 'UpLeft', gridElement);
 
-                //Explore East
-                var newLocation = exploreInDirection(currentLocation, 'East', gridElement);
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+                //Go Up-Right
+                var newLocation = exploreInDirection(currentLocation, 'UpRight', gridElement);
+
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+                //Go Down
+                newLocation = exploreInDirection(currentLocation, 'Down', gridElement);
+
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+                //Go Down-Left
+                newLocation = exploreInDirection(currentLocation, 'DownLeft', gridElement);
+
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+                //Go Down-Right
+                newLocation = exploreInDirection(currentLocation, 'DownRight', gridElement);
 
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
@@ -215,8 +309,17 @@
                     queue.push(newLocation)
                 }
 
-                //Explore West
-                var newLocation = exploreInDirection(currentLocation, 'West', gridElement);
+                //Go Left
+                newLocation = exploreInDirection(currentLocation, 'Left', gridElement);
+
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+
+                //Go Right
+                newLocation = exploreInDirection(currentLocation, 'Right', gridElement);
 
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
@@ -229,22 +332,23 @@
         }
 
         function resetGrid() {
+            var $inputs = $('#gridSize:input');
+            var $curChecked = $('input:checked').attr('id');
             $('#grid').empty();
-            var curChecked = $('input:checked').attr('id');
-            $(`#${curChecked}`).prop('checked', false)
-            toggleValue = null;
+            $(`#${$curChecked}`).prop('checked', false);
+            $inputs.val("");
+            cellValue = EMPTY;
             startClick = 0;
             endClick = 0;
         }
 
-        $('.btn-check').click(function (e) {
-            // e.preventDefault();
-            toggleValue = e.target.value
+        $('.value-btn').click(function (e) {
+            cellValue = e.target.value;
         })
 
         $('#reset').click(function () {
             resetGrid();
-            buildGrid(newGrid);
+            buildGrid(initGrid);
         })
 
         $('#path').click(function (e) {
@@ -254,7 +358,7 @@
 
                 for (let k = 0; k < shortestPath.length; k++) {
                     var [coordX, coordY] = shortestPath[k];
-                    $(`.${coordX}-${coordY}`).addClass('btn btn-warning h-100 w-100 d-block');
+                    $(`.${coordX}-${coordY}`).addClass(PATH_BUTTON_CLASS);
                 }
             } else {
                 alert("No viable path found")
@@ -263,138 +367,113 @@
 
         $("#subm").click(function (e) {
             e.preventDefault()
-            // get all the inputs into an array.
             var $inputs = $('#gridSize:input');
+            const value = $inputs.val();
+            // get all the inputs into an array.
+            if (value) {
+                var values = {};
+                $inputs.each(function () {
+                    values[this.name] = $(this).val();
+                });
 
-            // not sure if you wanted this, but I thought I'd add it.
-            // get an associative array of just the values.
-            var values = {};
-            $inputs.each(function () {
-                values[this.name] = $(this).val();
-            });
+                var {gridSize} = values;
 
-            var {gridSize} = values;
-
-            newGrid = Number(gridSize);
-            resetGrid();
-            buildGrid(newGrid);
-
-
-
+                newGrid = Number(gridSize);
+                resetGrid();
+                buildGrid(newGrid);
+            }
         });
     })
 </script>
 
-<body>
-    <div class="container text-center bg-light p-4" id="main">
-        <div class="container  my-2">
-            <form id="grid-form">
-                <div class="d-flex flex-row align-items-center justify-content-evenly">
-                    <div class="col-4 form-floating mb-3">
-                        <input type="text" class="form-control" id="gridSize" name="gridSize" placeholder="10">
-                        <label for="gridSize">Select Grid Size</label>
-                    </div>
-                    <div class="col-4">
-                        <button class="btn btn-primary mb-auto" type="button" id="subm">Draw Grid</button>
-                    </div>
+<body class="bg-dark">
+    <main class="d-flex flex-nowrap">
+        <div class="container text-center bg-dark text-white p-4" id="side-left">
+            <article>
+                <div>
+                    <h3>
+                        GRID CRAWLER
+                    </h3>
                 </div>
-            </form>
-
-
+                <section class="text-start">
+                    <p>Create a simple single page application that can find the shortest path
+                        on a grid given a starting point, an ending point and an unlimited amount
+                        of obstacles.
+                    </p>
+                    <article>
+                        <p>
+                            I applied the Breadth-First Search (BFS) algorithm to solve this problem.
+                            The BFS algorithm uses a queue data structure(array in javascript) to create an
+                            accessible memory of which cells have been visited, are blocked or are valid.
+                            Once the queue finds the goal, or endpoint, the shortest path has been obtained.
+                        </p>
+                        <p>
+                            The reason the BFS algorithm can find the shortest path is because the grid is
+                            being explored in each direction at equal speeds. The quickest return with the goal
+                            is the shortest path.  In this application of the BFS algorithm, I allowed the search
+                            to go in every direction, including the diagonals.
+                        </p>
+                        <p>
+                            This project is constructed using Html5, Bootstrap, Javascript & jQuery.
+                        </p>
+                        <span class="mx-2" style="font-size:2rem;color:Tomato;">
+                            <i class="fa-brands fa-html5 fa-xl"></i>
+                        </span>
+                        <span class="mx-2" style="font-size:2rem;color:Yellow;">
+                            <i class="fa-brands fa-square-js fa-xl"></i>
+                        </span>
+                        <span class="mx-2" style="font-size:2rem;color:#6610f2;">
+                            <i class="fa-brands fa-bootstrap fa-xl"></i>
+                        </span>
+                        <span class="mx-2" style="font-size:2rem;color:dodgerblue;">
+                            <i class="fa-solid fa-font-awesome fa-xl"></i>
+                        </span>
+                    </article>
+                </section>
+            </article>
         </div>
-        <div class="container my-2 text-center bg-light" id="buttons">
-
-
-            <div class="row">
-                <div class="btn-group mb-5" role="group" aria-label="Grid selection">
-                    <input type="radio" class="btn-check value-btn" name="grid-sel" id="obstacles" value="1"
-                        autocomplete="off">
-                    <label class="btn btn-outline-dark mx-1" for="obstacles" data-bs-toggle="tooltip"
-                        data-bs-placement="top" data-bs-title="Select obstacles">Select Obstacles</label>
-                    <input type="radio" class="btn-check" name="grid-sel" id="start" value="2" autocomplete="off">
-                    <label class="btn btn-outline-success mx-1" for="start" data-bs-toggle="tooltip"
-                        data-bs-placement="top" data-bs-title="Select Starting Point">Select Start</label>
-                    <input type="radio" class="btn-check" name="grid-sel" id="end" value="3" autocomplete="off">
-                    <label class="btn btn-outline-danger mx-1" for="end" data-bs-toggle="tooltip"
-                        data-bs-placement="top" data-bs-title="Select Ending Point">Select End</label>
-                    <input type="radio" class="btn-check" name="grid-sel" id="reset" value="4" autocomplete="off">
-                    <label class="btn btn-outline-warning mx-1" for="reset" data-bs-toggle="tooltip"
-                        data-bs-placement="top" data-bs-title="Clear the Grid">Reset</label>
-                    <input type="radio" class="btn-check" name="grid-sel" id="path" value="5" autocomplete="off">
-                    <label class="btn btn-outline-secondary mx-1" for="path" data-bs-toggle="tooltip"
-                        data-bs-placement="top" data-bs-title="Find the Shortest Path">Find Path</label>
+        <div class="container text-center bg-light p-2" id="main">
+            <div class="container my-2">
+                <form id="grid-form">
+                    <div class="d-flex flex-row align-items-center justify-content-evenly">
+                        <div class="col-4 form-floating mb-3">
+                            <input type="text" class="form-control" id="gridSize" name="gridSize" placeholder="10">
+                            <label for="gridSize">Select Grid Size</label>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-primary mb-auto" type="button" id="subm">Draw Grid</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="container my-2 text-center bg-light" id="buttons">
+                <div class="row">
+                    <div class="btn-group mb-5" role="group" aria-label="Grid selection">
+                        <input type="radio" class="btn-check value-btn" name="grid-sel" id="obstacles" value="Obstacle"
+                            autocomplete="off">
+                        <label class="btn btn-outline-dark mx-1" for="obstacles" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Select obstacles">Select Obstacles</label>
+                        <input type="radio" class="btn-check value-btn" name="grid-sel" id="start" value="Start"
+                            autocomplete="off">
+                        <label class="btn btn-outline-success mx-1" for="start" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Select Starting Point">Select Start</label>
+                        <input type="radio" class="btn-check value-btn" name="grid-sel" id="end" value="End"
+                            autocomplete="off">
+                        <label class="btn btn-outline-danger mx-1" for="end" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Select Ending Point">Select End</label>
+                        <input type="radio" class="btn-check" name="grid-sel" id="reset" value="Reset"
+                            autocomplete="off">
+                        <label class="btn btn-outline-warning mx-1" for="reset" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Clear the Grid">Reset</label>
+                        <input type="radio" class="btn-check" name="grid-sel" id="path" value="Path" autocomplete="off">
+                        <label class="btn btn-outline-secondary mx-1" for="path" data-bs-toggle="tooltip"
+                            data-bs-placement="top" data-bs-title="Find the Shortest Path">Find Path</label>
+                    </div>
                 </div>
             </div>
+            <div class="container text-center bg-light" id="grid"></div>
         </div>
-        <div class="container text-center bg-light" id="grid"></div>
-    </div>
+    </main>
 </body>
-
-<script>
-     // FIND EDGES ON THE CORNERS
-                    // if (topLeft) {
-                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
-                    // }
-                    // if (topRight) {
-                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
-                    // }
-                    // if (bottomLeft) {
-                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
-                    // }
-                    // if (bottomRight) {
-                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
-                    // }
-                    // FIND EDGES ON THE TOP
-                    // if (i === '0' && !(topLeft || topRight)) {
-                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
-                    // }
-                    // FIND EDGES ON THE LEFT
-                    // if (j === '0' && !bottomLeft) {
-                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
-                    // }
-                    // FIND EDGES ON THE RIGHT
-                    // if (j === '9' && !bottomRight) {
-                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
-                    // }
-                    // FIND EDGES AT THE BOTTOM
-                    // if (i === '9' && !(bottomLeft || bottomRight)) {
-                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
-                    // }
-                    //FIND ALL OTHER EDGES
-                    // if (inGrid) {
-                    //     g.addEdge(curVertex, `${i - 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i - 1}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j}`)
-                    //     g.addEdge(curVertex, `${i + 1}-${j + 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j - 1}`)
-                    //     g.addEdge(curVertex, `${i}-${j + 1}`)
-                    // }
-</script>
 
 </html>
