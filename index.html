@@ -410,8 +410,15 @@
                         <p>
                             The reason the BFS algorithm can find the shortest path is because the grid is
                             being explored in each direction at equal speeds. The quickest return with the goal
-                            is the shortest path.  In this application of the BFS algorithm, I allowed the search
+                            is the shortest path. In this application of the BFS algorithm, I allowed the search
                             to go in every direction, including the diagonals.
+                        </p>
+                        <p>
+                            In order to match the results of the algorithm to the rendering of the web page,
+                            there are 2 grids constructed: a calculation grid & a DOM grid. Each cell contains
+                            a value attribute that represents the location on the grid. Once the algorthm finds the
+                            endpoint, the class of each cell along the shortest route is changed to represent the
+                            color of the pathway.
                         </p>
                         <p>
                             This project is constructed using Html5, Bootstrap, Javascript & jQuery.
@@ -474,6 +481,26 @@
             <div class="container text-center bg-light" id="grid"></div>
         </div>
     </main>
+    <div class="container mt-5">
+        <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
+            <p class="col-md-4 mb-0 text-muted">© Jeremiah Stafford</p>
+
+            <p class="col-md-4 d-flex text-white align-items-center justify-content-center">
+                jstafford@jbscap.com
+            </p>
+
+            <ul class="nav col-md-4 justify-content-end">
+                <li class="nav-item "><a href="https://www.linkedin.com/in/jeremiah-stafford-pmp/"
+                        class="nav-link px-2 text-white">
+                        <i class="fa-brands fa-linkedin fa-xl"></i>
+                    </a></li>
+                <li class="nav-item"><a href="https://github.com/jstafford74/grid-crawler"
+                        class="nav-link px-2 text-white">
+                        <i class="fa-brands fa-github fa-xl"></i>
+                    </a></li>
+            </ul>
+        </footer>
+    </div>
 </body>
 
 </html>

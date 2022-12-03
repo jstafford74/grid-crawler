@@ -17,4 +17,10 @@
     is the shortest path.  In this application of the BFS algorithm, I allowed the search
     to go in every direction, including the diagonals.
 
-    This project is constructed using Html5, Bootstrap, Javascript & jQuery.
+    In order to match the results of the algorithm to the rendering of the web page,
+    there are 2 grids constructed: a calculation grid & a DOM grid.  Each cell contains
+    a value attribute that represents the location on the grid.  Once the algorthm finds the 
+    endpoint, the class of each cell along the shortest route is changed to represent the 
+    color of the pathway.
+
+    This project is constructed using Html5, Bootstrap, Javascript, jQuery & Font-Awesome.
