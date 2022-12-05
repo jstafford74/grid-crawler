@@ -36,6 +36,21 @@
         padding: 0;
     }
 
+    .visited {
+        animation: fadeOpacity 1s;
+    }
+
+    @keyframes fadeOpacity {
+        from {
+            opacity: 1;
+        }
+
+        to {
+            opacity: .3;
+            color: black;
+        }
+    }
+
     .btn {
         border-radius: 0;
     }
@@ -49,6 +64,7 @@
             END_BUTTON_CLASS = 'btn btn-danger h-100 w-100 d-block',
             PATH_BUTTON_CLASS = 'btn btn-warning h-100 w-100 d-block',
             BASE_BUTTON_CLASS = `btn btn-info h-100 w-100 d-block`,
+            VISITED_BUTTON_CLASS = 'btn btn-info h-100 w-100 d-block visited',
             EMPTY = 'Empty',
             OBSTACLE = 'Obstacle',
             START = 'Start',
@@ -63,20 +79,19 @@
         };
 
         var toggleValue = false,
-            startClick = 0,
-            endClick = 0,
             initGrid = 10,
             newGrid = 10,
             grid = [],
             startingPoint = [],
-            endPoint = [],
+            endingPoint = [],
             cellValue = 'Empty'
             ;
+
         // Enable tooltips
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
         const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
 
-        buildGrid(initGrid)
+        buildGrid(initGrid);
 
         function buildGrid(size) {
             // Loop through 2-dimensional array, based on grid size, in order to 
@@ -106,62 +121,136 @@
                     // Add Click handler to buttons just placed in the DOM grid
                     $(`.${i}-${j}`).click(function (e) {
                         e.preventDefault();
-                        var cellVal = $(this).data("cell-value")
-                            , shouldToggle = cellVal === cellValue;
+                        var cellVal = $(this).attr("data-cell-value"),
+                            shouldToggle = cellVal === cellValue,                    // Boolean check for toggling points
+                            targArray = e.target.value.split('-'),                   // Pull value from element & convert to array of numbers
+                            [targRow, targCol] = [targArray[0], targArray[1]],       // Deconstruct target point
+                            [startX, startY] = [startingPoint[0], startingPoint[1]], // Deconstruct start & end points
+                            [endX, endY] = [endingPoint[0], endingPoint[1]],
+                            curClass = $(this).attr("class"),                        // Define the current class in order to properly locate & replace it
+                            hasStartPoint = !!gridCheck(grid, START).length,         // Boolean values to check for start & end values
+                            hasEndPoint = !!gridCheck(grid, END).length;
+                        ;
 
-                        // Pull value from element
-                        var targArray = e.target.value.split('-')
-                        // Convert value to array of numbers
-                        var [targRow, targCol] = [targArray[0], targArray[1]];
-                        // Define the current class in order to properly replace it based
-                        // on the toggle selection, i.e. start, end or obstacle without residuals
-                        var curClass = $(this).attr("class");
 
+
+                        // If user wants to overwrite the cell with new values
                         if (shouldToggle && cellVal !== EMPTY) {
-                            $(this).data("cell-value", EMPTY);
-                            $(this).removeClass(`${curClass}`)
-                            $(this).addClass(`${BUTTON_CLASSES[EMPTY]}`);
-                            grid[targRow][targCol] = EMPTY
-                            if (cellValue === START && startClick !== 0) {
-                                startClick = 0;
+                            $(`[value="${targRow}-${targCol}"]`).attr("data-cell-value", EMPTY)
+                            $(`[value="${targRow}-${targCol}"]`).removeClass(`${curClass}`)
+                            $(`[value="${targRow}-${targCol}"]`).addClass(`${BUTTON_CLASSES[EMPTY]}`);
+                            grid[targRow][targCol] = cellValue
+
+                            // User wants to replace start point    
+                            if (cellValue === START && hasStartPoint) {
                                 startingPoint = []
+                                grid[startX][startY] = EMPTY
                             }
-                            if (cellValue === END && endClick !== 0) {
-                                endClick = 0;
-                                endPoint = []
+                            // User wants to replace end point
+                            if (cellValue === END && hasEndPoint) {
+                                endingPoint = [];
+                                grid[endX][endY] = EMPTY
                             }
                         }
+                        // User puts value into empty cell
                         if (!shouldToggle && cellVal === EMPTY) {
-                            $(this).data("cell-value", cellValue);
-                            $(this).removeClass(`${curClass}`)
-                            $(this).addClass(`${BUTTON_CLASSES[cellValue]}`);
-                            grid[targRow][targCol] = cellValue;
                             if (cellValue === START) {
-                                if (startClick !== 0) {
+                                if (hasStartPoint) {
                                     alert("Can only have One Starting Point")
-                                    return;
+                                    return null;
                                 }
-                                if (startClick === 0) {
-                                    startClick++;
+                                if (!hasStartPoint) {
                                     startingPoint = [Number(targRow), Number(targCol)]
+                                    grid[targRow][targCol] = START
                                 }
                             }
                             if (cellValue === END) {
-                                if (endClick !== 0) {
+                                if (hasEndPoint) {
                                     alert("Can only have One Ending Point")
-                                    return;
+                                    return null;
                                 }
-                                if (endClick === 0) {
-                                    endClick++;
-                                    endPoint = [Number(targRow), Number(targCol)]
+                                if (!hasEndPoint) {
+                                    endingPoint = [Number(targRow), Number(targCol)]
+                                    grid[targRow][targCol] = END
                                 }
                             }
+                            $(`[value="${targRow}-${targCol}"]`).attr("data-cell-value", cellValue)
+                            $(`[value="${targRow}-${targCol}"]`).removeClass(`${curClass}`)
+                            $(`[value="${targRow}-${targCol}"]`).addClass(`${BUTTON_CLASSES[cellValue]}`);
+                            grid[targRow][targCol] = cellValue;
                         }
 
+                        if (!shouldToggle && cellVal !== EMPTY) {
+                            // Assume the user is proactively replacing the starting point with toggled value 
+                            curClass = $(`[value="${targRow}-${targCol}"]`).attr("class")
+
+                            // If destination cell was a starting point, remove it
+                            if (hasStartPoint && cellValue === START) {
+                                oldClass = $(`[value="${startX}-${startY}"]`).attr("class")
+                                // Remove old start point 
+                                $(`[value="${startX}-${startY}"]`).attr("data-cell-value", EMPTY)
+                                $(`[value="${startX}-${startY}"]`).removeClass(`${oldClass}`)
+                                $(`[value="${startX}-${startY}"]`).addClass(`${BUTTON_CLASSES[EMPTY]}`);
+                                grid[startX][startY] = EMPTY;
+                                startingPoint = [];
+                            }
+                            // If destination cell was an ending point, remove it
+                            if (hasEndPoint && cellValue === END) {
+                                oldClass = $(`[value="${endX}-${endY}"]`).attr("class")
+                                // Remove old end point 
+                                $(`[value="${endX}-${endY}"]`).attr("data-cell-value", EMPTY)
+                                $(`[value="${endX}-${endY}"]`).removeClass(`${oldClass}`)
+                                $(`[value="${endX}-${endY}"]`).addClass(`${BUTTON_CLASSES[EMPTY]}`);
+                                grid[endX][endY] = EMPTY;
+                                endingPoint = []
+                            }
+
+                            // Replace with new start point
+                            if (cellValue === START) {
+                                curClass = $(`[value="${targRow}-${targCol}"]`).attr("class")
+                                startingPoint = [Number(targRow), Number(targCol)]
+                                grid[targRow][targCol] = START;
+                                $(`[value="${targRow}-${targCol}"]`).attr("data-cell-value", START)
+                                $(`[value="${targRow}-${targCol}"]`).removeClass(`${curClass}`)
+                                $(`[value="${targRow}-${targCol}"]`).addClass(`${BUTTON_CLASSES[START]}`);
+                            }
+
+                            // Replace with new end point
+                            if (cellValue === END) {
+                                curClass = $(`[value="${targRow}-${targCol}"]`).attr("class")
+                                endingPoint = [Number(targRow), Number(targCol)]
+                                grid[targRow][targCol] = END;
+                                $(`[value="${targRow}-${targCol}"]`).attr("data-cell-value", END)
+                                $(`[value="${targRow}-${targCol}"]`).removeClass(`${curClass}`)
+                                $(`[value="${targRow}-${targCol}"]`).addClass(`${BUTTON_CLASSES[END]}`);
+                            }
+
+                            // Replace with Obstacle
+                            if (cellVal === OBSTACLE) {
+                                curClass = $(`[value="${targRow}-${targCol}"]`).attr("class")
+                                $(`[value="${targRow}-${targCol}"]`).attr("data-cell-value", cellValue)
+                                $(`[value="${targRow}-${targCol}"]`).removeClass(`${curClass}`)
+                                $(`[value="${targRow}-${targCol}"]`).addClass(`${BUTTON_CLASSES[cellValue]}`);
+                                grid[targRow][targCol] = cellValue;
+                            }
+                        }
                     })
                 }
             }
         }
+
+        function gridCheck(gridElement, point) {
+            return gridElement.reduce((acc, curVal) => {
+                let points = curVal.filter(cell => cell === point)
+                if (points.length) {
+                    return acc.concat(points)
+                }
+
+                return acc
+            }, [])
+        }
+
+        // Credit to http://gregtrowbridge.com/ for basc algorithm set up
 
         // Helper function that determines if the cell to be explored
         // is a valid cell, i.e. on-grid, not visited or free from obstacles.
@@ -237,7 +326,8 @@
             newLocation.status = locationStatus(newLocation, gridElement);
 
             if (newLocation.status === 'Valid') {
-                gridElement[newLocation.distanceFromTop][newLocation.distanceFromLeft] = 'Visited'
+                gridElement[newLocation.distanceFromTop][newLocation.distanceFromLeft] = 'Visited';
+                $(`.${newLocation.distanceFromTop}-${newLocation.distanceFromLeft}`).addClass(VISITED_BUTTON_CLASS);
             }
 
             return newLocation
@@ -257,27 +347,19 @@
                 queue = [location] // This is the data structure
                 ;
 
+            function gridStats(gridElement) {
+                return gridCheck(gridElement, "Visited").length;
+            }
+
             while (queue.length > 0) {
                 var currentLocation = queue.shift(); // FIFO location
 
-                //Go Up
-                var newLocation = exploreInDirection(currentLocation, 'Up', gridElement);
+                // The order here matters, so basic assumption for visually appealing
+                // solution given allopwed diagonals is that the user selects a starting
+                // point near the upper left corner.
 
-                if (newLocation.status === 'Goal') {
-                    return newLocation.path;
-                } else if (newLocation.status === 'Valid') {
-                    queue.push(newLocation)
-                }
-                //Go Up-Left
-                var newLocation = exploreInDirection(currentLocation, 'UpLeft', gridElement);
-
-                if (newLocation.status === 'Goal') {
-                    return newLocation.path;
-                } else if (newLocation.status === 'Valid') {
-                    queue.push(newLocation)
-                }
-                //Go Up-Right
-                var newLocation = exploreInDirection(currentLocation, 'UpRight', gridElement);
+                //Go Right
+                var newLocation = exploreInDirection(currentLocation, 'Right', gridElement);
 
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
@@ -292,14 +374,6 @@
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
                 }
-                //Go Down-Left
-                newLocation = exploreInDirection(currentLocation, 'DownLeft', gridElement);
-
-                if (newLocation.status === 'Goal') {
-                    return newLocation.path;
-                } else if (newLocation.status === 'Valid') {
-                    queue.push(newLocation)
-                }
                 //Go Down-Right
                 newLocation = exploreInDirection(currentLocation, 'DownRight', gridElement);
 
@@ -308,7 +382,22 @@
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
                 }
+                //Go Up
+                newLocation = exploreInDirection(currentLocation, 'Up', gridElement);
 
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+                //Go Up-Right
+                newLocation = exploreInDirection(currentLocation, 'UpRight', gridElement);
+
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
                 //Go Left
                 newLocation = exploreInDirection(currentLocation, 'Left', gridElement);
 
@@ -317,9 +406,16 @@
                 } else if (newLocation.status === 'Valid') {
                     queue.push(newLocation)
                 }
+                //Go Up-Left
+                newLocation = exploreInDirection(currentLocation, 'UpLeft', gridElement);
 
-                //Go Right
-                newLocation = exploreInDirection(currentLocation, 'Right', gridElement);
+                if (newLocation.status === 'Goal') {
+                    return newLocation.path;
+                } else if (newLocation.status === 'Valid') {
+                    queue.push(newLocation)
+                }
+                //Go Down-Left
+                newLocation = exploreInDirection(currentLocation, 'DownLeft', gridElement);
 
                 if (newLocation.status === 'Goal') {
                     return newLocation.path;
@@ -338,8 +434,8 @@
             $(`#${$curChecked}`).prop('checked', false);
             $inputs.val("");
             cellValue = EMPTY;
-            startClick = 0;
-            endClick = 0;
+            startingPoint = [];
+            endingPoint = [];
         }
 
         $('.value-btn').click(function (e) {
@@ -481,7 +577,7 @@
             <div class="container text-center bg-light" id="grid"></div>
         </div>
     </main>
-    <div class="container mt-5">
+    <div class="container mt-5 footer-container">
         <footer class="d-flex flex-wrap justify-content-between align-items-center py-3 my-4 border-top">
             <p class="col-md-4 mb-0 text-muted">© Jeremiah Stafford</p>
 
